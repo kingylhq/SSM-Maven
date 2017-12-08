@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:util="http://www.springframework.org/schema/util" xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+     http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.1.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+     http://www.springframework.org/schema/util 
+     http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- ==================================配置文件================================================ -->
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations">
+			<list>
+			 <value>classpath:spring/init-config.properties</value>
+			<!--  <value>classpath:memcached.properties</value> -->
+			</list>
+		</property>
+	</bean>
+
+	<!-- 配置数据库连接属性文件 -->
+	<util:properties id="init" location="classpath:spring/init-config.properties" />
+	
+	<!-- *********************************** 第一个数据源配置结束 ******************************************** -->
+	<bean id="dataSource" class="com.alibaba.druid.pool.DruidDataSource" init-method="init" destroy-method="close">
+		<property name="url" value="${dataSource.url}" />
+		<property name="username" value="${dataSource.username}" />
+		<property name="password" value="${dataSource.password}" />
+		<property name="connectionProperties" value="${dataSource.driver}"></property>
+
+		<!-- 配置初始化大小、最小、最大 -->
+		<property name="initialSize" value="${dataSource.initialSize}" />
+		<property name="minIdle" value="${dataSource.minIdle}" />
+		<property name="maxActive" value="${dataSource.maxActive}" />
+		<!-- 配置获取连接等待超时的时间 -->
+		<property name="maxWait" value="60000" />
+		<!-- 配置间隔多久才进行一次检测，检测需要关闭的空闲连接，单位是毫秒 -->
+		<property name="timeBetweenEvictionRunsMillis" value="60000" />
+		<!-- 配置一个连接在池中最小生存的时间，单位是毫秒 -->
+		<property name="minEvictableIdleTimeMillis" value="300000" />
+		<property name="validationQuery" value="select 1 from dual" />
+		<property name="testWhileIdle" value="true" />
+		<property name="testOnBorrow" value="false" />
+		<property name="testOnReturn" value="false" />
+
+		<!-- 打开PSCache，并且指定每个连接上PSCache的大小 -->
+		<property name="poolPreparedStatements" value="true" />
+		<property name="maxPoolPreparedStatementPerConnectionSize" value="4" />
+
+		<!-- 配置监控统计拦截的filters -->
+		<property name="filters" value="stat" />
+	</bean>
+
+	<!-- ================================== Mybatis 模板配置开始================================================ -->
+	<!-- 设置mybaties的sqlSeesionFactory-->
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource" />
+		<!--要映射类的包路径，如果使用了这种方式，则configLocation中不必再进行声明，根据实际情况修改或添加多个，以逗号隔开 -->
+		<property name="typeAliasesPackage" value="com.lq.*.model" ></property>
+		<property name="typeHandlersPackage" value="com.linc.entity.typehandler" />
+		<property name="configLocation" value="classpath:spring/applicationContext-mybatis.xml" />
+		<!-- 自动扫描mapping.xml文件 -->
+		<property name="mapperLocations" value="classpath*:com/lq/repository/**/*.xml" />
+	</bean>
+
+	<!--MapperScannerConfigurer配置 ,由Spring自动把mybaties的sqlSeesionFactory 注入到do层 -->
+	<bean class="org.mybatis.spring.mapper.MapperScannerConfigurer">
+		<property name="sqlSessionFactoryBeanName" value="sqlSessionFactory" />
+		<!--basePackage指定要扫描的包，在此包之下的映射器都会被搜索到。可指定多个包，包与包之间用逗号或分号分隔 -->
+		<property name="basePackage" value="com.lq.repository" />
+	</bean>
+	<!-- ================================== Mybatis配置结束 ================================================ -->
+
+	<!-- 配置spring 线程池 -->
+	<bean id="taskExecutor" class="org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor">
+		<property name="corePoolSize" value="3" />
+		<property name="maxPoolSize" value="10" />
+		<property name="queueCapacity" value="25" />
+	</bean>
+
+	<!-- *********************************** 第一个数据源配置结束 ******************************************** -->
+	<!-- 可以在此配置多个数据源 -->
+
+	<!-- ================================== 事务配置开始 开始 ================================================ -->
+	<bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+		<property name="dataSource" ref="dataSource" />
+	</bean>
+
+	<tx:annotation-driven />
+	<!-- 配置事物通知属性 -->
+	<tx:advice id="txAdivesor" transaction-manager="transactionManager">
+		<!-- 事务性语义 -->
+		<tx:attributes>
+			<tx:method name="check*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="insert*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="save*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="select*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="delete*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="update*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="imp*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="execute*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="will*" propagation="REQUIRES_NEW" timeout="600" read-only="false" rollback-for="Throwable" />
+			<tx:method name="init*" propagation="REQUIRED" timeout="600" read-only="false" rollback-for="Throwable" />
+		</tx:attributes>
+	</tx:advice>
+	
+	<bean id="aoundAdvice" class="com.lq.util.log.AroundAdvice" />
+	
+	<!-- 事务控制拦截 -->
+	<aop:config proxy-target-class="false">
+		<!-- 切入点集合 、Spring配置Service层的事物切面-->
+		<aop:pointcut expression="execution(* com.lq.*.service..*Service.*(..))" id="allManagerMethod" />
+		<aop:advisor advice-ref="txAdivesor" pointcut-ref="allManagerMethod" />
+	</aop:config>
+	<!-- ================================== 事务配置结束 ================================================ -->
+
+	<!-- 配置 Advice (用来记录系统日志) -->
+	<!-- <bean id="aoundAdvice" class="com.sys.util.log.AroundAdvice" /> -->
+
+	<aop:config proxy-target-class="false">
+		<aop:aspect id="aoundAdvice">
+			<!-- 切入点集合 -->
+			<aop:pointcut expression="execution(* com.lq.*.*(..))" id="allManagerMethod" />
+		</aop:aspect>
+	</aop:config>
+
+</beans>
+

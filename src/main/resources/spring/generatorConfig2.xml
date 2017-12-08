@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+
+	<!-- 引入配置文件 -->
+	<!-- <util:properties id="init" location="classpath:spring/init-config.properties" /> -->
+	<bean class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="locations" type="list">
+			<list>
+			 <value>classpath:spring/init-config.properties</value>
+			</list>
+		</property>
+	</bean>
+
+	<!--这里需要换成自己的ojdbc.jar 包的地址 -->
+	<classPathEntry location="${jarUrl}" />
+
+	<context id="testTables" targetRuntime="MyBatis3">
+		<!-- 注释 -->
+		<commentGenerator>
+			<property name="suppressAllComments" value="false" /><!-- 是否取消注释 -->
+			<property name="suppressDate" value="false" /> <!-- 是否生成注释代时间戳 -->
+		</commentGenerator>
+
+		<jdbcConnection driverClass="${dataSource.driver}"
+			connectionURL="${dataSource.url}" userId="${dataSource.username}"
+			password="${dataSource.password}">
+		</jdbcConnection>
+
+		<javaTypeResolver>
+			<property name="forceBigDecimals" value="false" />
+		</javaTypeResolver>
+
+		<!-- targetPackage是目标包名, targetProject是包所在的位置 -->
+		<!-- javaModelGenerator生成的是实体类, sqlMapGenerator生成的是映射文件, javaClientGenerator生成的是dao -->
+		<!-- dto -->
+		<javaModelGenerator targetPackage="com.lq.model"
+			targetProject="${targetObject}">
+			<property name="enableSubPackages" value="true" />
+			<!-- 是否针对string类型的字段在set的时候进行trim调用 -->
+			<property name="trimStrings" value="true" />
+		</javaModelGenerator>
+
+		<!-- sqlmapper -->
+		<sqlMapGenerator targetPackage="com.lq.repository.mapper"
+			targetProject="${targetObject}">
+			<property name="enableSubPackages" value="false" />
+		</sqlMapGenerator>
+
+		<!-- dao -->
+		<javaClientGenerator type="XMLMAPPER"
+			targetPackage="com.lq.repository" targetProject="${targetObject}">
+			<property name="enableSubPackages" value="false" />
+		</javaClientGenerator>
+
+
+		<!-- table -->
+		<table tableName="home_role" domainObjectName="RoleInfo"
+			enableCountByExample="false" enableDeleteByExample="false"
+			enableSelectByExample="false" enableUpdateByExample="false">
+		</table>
+
+
+	</context>
+</generatorConfiguration>

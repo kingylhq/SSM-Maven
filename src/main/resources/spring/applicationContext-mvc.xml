@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:jdbc="http://www.springframework.org/schema/jdbc" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+     http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.1.xsd
+     http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.1.xsd
+     http://www.springframework.org/schema/jdbc http://www.springframework.org/schema/jdbc/spring-jdbc-4.1.xsd
+     http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+     http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.1.xsd
+     http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.1.xsd
+     http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd  ">
+
+
+	<!--注解说明 -->
+	<context:annotation-config />
+	<aop:config proxy-target-class="true" />
+
+	<!-- 对包中的所有类进行扫描，以完成Bean创建和自动依赖注入的功能 -->
+	<context:component-scan base-package="com.lq">
+		<!-- 允许定义过滤器将基包下的某些类纳入或排除 -->
+		<context:include-filter type="annotation" expression="org.springframework.stereotype.Controller" />
+	</context:component-scan>
+
+
+	<!-- **************************************************************** -->
+	<!-- 对静态资源的访问 配置   本项目暂时去掉-->
+	<!-- **************************************************************** -->
+	
+	<!-- ==================================Thymeleaf配置开始================================================ -->
+	<bean id="thymeleafCacheManager" class="org.thymeleaf.cache.StandardCacheManager">
+		<property name="templateCacheInitialSize" value="60"></property>
+		<property name="templateCacheMaxSize" value="100"></property>
+	</bean>
+
+	<!-- **************************************************************** -->
+	<!-- THYMELEAF-SPECIFIC ARTIFACTS -->
+	<!-- TemplateResolver <- TemplateEngine <- ViewResolver -->
+	<!-- **************************************************************** InternalResourceViewResolver-->
+	<bean id="templateResolver" class="org.thymeleaf.templateresolver.ServletContextTemplateResolver">
+		<property name="order" value="1" />
+		<!-- <property name="prefix" value="/WEB-INF/classes/html/" /> -->
+		<property name="prefix" value="/html/" />
+		<property name="suffix" value=".html" />
+		<property name="templateMode" value="HTML5" />
+		<property name="cacheable" value="false" />
+		<property name="characterEncoding" value="UTF-8" />
+	</bean>
+
+	<!-- ************************************************************************ -->
+	<!-- ThymeLeaf模板引擎 此处可以配置多个templateResolver，多个 additionalDialects -->
+	<!-- ThymeLeaf如果不引用方言,HTML就默认ONGL语言,如果用spring方言,就支持SpringEL -->
+	<!-- ThymeLeaf支持缓存，有自带的缓存管理，可以通过cacheManager进行配置 -->
+	<!-- ************************************************************************ -->
+	<bean id="templateEngine" class="org.thymeleaf.spring4.SpringTemplateEngine">
+		<property name="templateResolver" ref="templateResolver" />
+		<property name="additionalDialects">
+			<set>
+				<bean class="org.thymeleaf.extras.springsecurity3.dialect.SpringSecurityDialect" />
+				<bean class="org.thymeleaf.extras.conditionalcomments.dialect.ConditionalCommentsDialect" />
+			</set>
+		</property>
+		<!-- <property name="cacheManager" ref="thymeleafCacheManager" /> -->
+	</bean>
+
+	<bean class="org.thymeleaf.spring4.view.ThymeleafViewResolver">
+		<property name="templateEngine" ref="templateEngine" />
+		<property name="order" value="1" />
+		<property name="characterEncoding" value="UTF-8" />
+	</bean>
+
+	<bean name="main" class="org.thymeleaf.spring4.view.ThymeleafView">
+		<property name="staticVariables">
+			<map>
+				<entry key="footer" value="Some company: &lt;b&gt;ACME&lt;/b&gt;" />
+			</map>
+		</property>
+	</bean>
+	<!-- ==================================Thymeleaf配置结束================================================ -->
+
+	<!-- ==================================MVC 注解配置开始================================================ -->
+
+	<bean id="stringHttpMessageConverter" class="org.springframework.http.converter.StringHttpMessageConverter">
+		<constructor-arg value="UTF-8" index="0"></constructor-arg><!--避免出现乱码 -->
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/plain;charset=UTF-8</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean class="com.linc.service.file.MappingJackson2JsonpHttpMessageConverter">
+		<property name="supportedMediaTypes">
+			<list>
+				<value>application/x-javascript</value>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="castorMarshaller" class="org.springframework.oxm.castor.CastorMarshaller" />
+
+	<bean id="marshallingHttpMessageConverter" class="org.springframework.http.converter.xml.MarshallingHttpMessageConverter">
+		<property name="marshaller" ref="castorMarshaller" />
+		<property name="unmarshaller" ref="castorMarshaller" />
+		<property name="supportedMediaTypes">
+			<list>
+				<value>text/xml;charset=UTF-8</value>
+				<value>application/xml;charset=UTF-8</value>
+				<value>text/json;charset=UTF-8</value>
+			</list>
+		</property>
+	</bean>
+
+	<mvc:annotation-driven>
+		<mvc:message-converters>
+			<ref bean="stringHttpMessageConverter" />
+			<ref bean="marshallingHttpMessageConverter" />
+		</mvc:message-converters>
+	</mvc:annotation-driven>
+
+	<!-- ==================================MVC 注解配置结束================================================ -->
+
+	<!-- ==================================MVC 拦截器配置开始================================================ -->
+	<!-- <mvc:interceptors>
+		配置登录拦截器，对所有的请求拦截使用/** ,对某个模块下的请求拦截使用：/path/*
+		<mvc:interceptor>
+			<mvc:mapping path="/**" />
+			<mvc:exclude-mapping path="/login/toLogin" />
+			<bean class="com.linc.sys.util.inteceptor.LoginInteceptor" />
+		</mvc:interceptor>
+
+		<mvc:interceptor>
+			<mvc:mapping path="/**" />
+
+			<ref bean="timeInteceptor" />
+		</mvc:interceptor>
+	</mvc:interceptors> -->
+
+	<!-- ==================================MVC 拦截器配置结束================================================ -->
+	<!-- 总错误处理 -->
+	<bean id="exceptionResolver" class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+		<property name="defaultErrorView">
+			<value>error</value>
+		</property>
+		<property name="defaultStatusCode">
+			<value>500</value>
+		</property>
+		<property name="warnLogCategory">
+			<value>org.springframework.web.servlet.handler.SimpleMappingExceptionResolver
+			</value>
+		</property>
+
+		<property name="exceptionMappings">
+			<props>
+				<prop key="IOException"></prop>
+				<prop key="java.sql.SQLException"></prop>
+				<prop key="java.lang.RuntimeException"></prop>
+			</props>
+		</property>
+	</bean>
+
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<property name="defaultEncoding" value="utf-8"></property>
+		<property name="maxUploadSize" value="10485760000"></property>
+		<property name="maxInMemorySize" value="40960"></property>
+	</bean>
+	
+	
+</beans>

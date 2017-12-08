@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE generatorConfiguration
+        PUBLIC "-//mybatis.org//DTD MyBatis Generator Configuration 1.0//EN"
+        "http://mybatis.org/dtd/mybatis-generator-config_1_0.dtd">
+
+<generatorConfiguration>
+
+	<!--这里需要换成自己的ojdbc.jar 包的地址 -->
+	<classPathEntry location="F:\Workspace\Jar\.m2\repository\com\oracle\ojdbc6\11.2.0\ojdbc6-11.2.0.jar" />
+
+	<context id="testTables" targetRuntime="MyBatis3">
+		<!-- 注释 -->
+		<commentGenerator>
+			<property name="suppressAllComments" value="false" /><!-- 是否取消注释 -->
+			<property name="suppressDate" value="false" /> <!-- 是否生成注释代时间戳 -->
+		</commentGenerator>
+
+		<jdbcConnection driverClass="oracle.jdbc.driver.OracleDriver"
+			connectionURL="jdbc:oracle:thin:@localhost:1521:XE" userId="home"
+			password="home">
+		</jdbcConnection>
+		
+		<!-- 类型转换 -->  
+		<javaTypeResolver>
+			<!-- 是否使用bigDecimal， false可自动转化以下类型（Long, Integer, Short, etc.） -->  
+			<property name="forceBigDecimals" value="false" />
+		</javaTypeResolver>
+
+		<!-- targetPackage是目标包名, targetProject是包所在的位置 -->
+		<!-- javaModelGenerator生成的是实体类, sqlMapGenerator生成的是映射文件, javaClientGenerator生成的是dao -->
+		<!-- 生成实体 -->
+		<javaModelGenerator targetPackage="com.lq.model"
+			targetProject="mymaven">
+			<property name="enableSubPackages" value="true" />
+			<!-- 是否针对string类型的字段在set的时候进行trim调用 -->
+			<property name="trimStrings" value="true" />
+		</javaModelGenerator>
+
+		<!-- 生成sqlmapper -->
+		<sqlMapGenerator targetPackage="com.lq.repository.mapper"
+			targetProject="mymaven">
+			<property name="enableSubPackages" value="false" />
+		</sqlMapGenerator>
+
+		<!-- 生成dao -->
+		<javaClientGenerator type="XMLMAPPER"
+			targetPackage="com.lq.repository" targetProject="mymaven">
+			<property name="enableSubPackages" value="false" />
+		</javaClientGenerator>
+
+
+		<!-- table 可以写很多个-->
+		<table tableName="home_user" domainObjectName="UserInfo"
+			enableCountByExample="false" enableDeleteByExample="false"
+			enableSelectByExample="false" enableUpdateByExample="false">
+		</table>
+
+
+	</context>
+</generatorConfiguration>
